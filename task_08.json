@@ -1,0 +1,11 @@
+{
+  "task_id": "codenet_p03260",
+  "prompt": "Statement\n\nYou are given integers A and B, each between 1 and 3 (inclusive).\n\nDetermine if there is an integer C between 1 and 3 (inclusive) such that A\n\\times B \\times C is an odd number.",
+  "solution": "print([\"No\", \"Yes\"][eval(input().replace(\" \", \"*\")) % 2])\n",
+  "test": [
+    {
+      "input": "3 1",
+      "output": "Yes\\n    \\n\\nLet C = 3. Then, A \\\\times B \\\\times C = 3 \\\\times 1 \\\\times 3 = 9, which is an\\nodd number.\\n\\n* * *"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "task_id": "codenet_p03671",
+  "prompt": "Statement\n\nSnuke is buying a bicycle. The bicycle of his choice does not come with a\nbell, so he has to buy one separately.\n\nHe has very high awareness of safety, and decides to buy two bells, one for\neach hand.\n\nThe store sells three kinds of bells for the price of a, b and c yen (the\ncurrency of Japan), respectively. Find the minimum total price of two\ndifferent bells.",
+  "solution": "import itertools\n\nN_List = list(map(int, input().split()))\na = sum(N_List)\n\nfor v in itertools.combinations(N_List, 2):\n    if a >= sum(v):\n        a = sum(v)\nprint(a)\n",
+  "test": [
+    {
+      "input": "700 600 780",
+      "output": "1300\\n    \\n\\n  * Buying a 700-yen bell and a 600-yen bell costs 1300 yen.\\n  * Buying a 700-yen bell and a 780-yen bell costs 1480 yen.\\n  * Buying a 600-yen bell and a 780-yen bell costs 1380 yen.\\n\\nThe minimum among these is 1300 yen.\\n\\n* * *"
+    }
+  ]
+}

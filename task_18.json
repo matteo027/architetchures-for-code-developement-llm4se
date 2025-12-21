@@ -1,0 +1,11 @@
+{
+  "task_id": "codenet_p03759",
+  "prompt": "Statement\n\nThree poles stand evenly spaced along a line. Their heights are a, b and c\nmeters, from left to right. We will call the arrangement of the poles\n_beautiful_ if the tops of the poles lie on the same line, that is, b-a = c-b.\n\nDetermine whether the arrangement of the poles is beautiful.",
+  "solution": "f = lambda x: x[0] - 2 * x[1] + x[2] == 0\nprint(\"YES\" if f(list(map(int, input().split()))) else \"NO\")\n",
+  "test": [
+    {
+      "input": "2 4 6",
+      "output": "YES\\n    \\n\\nSince 4-2 = 6-4, this arrangement of poles is beautiful.\\n\\n* * *"
+    }
+  ]
+}

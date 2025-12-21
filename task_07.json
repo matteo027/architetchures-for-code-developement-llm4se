@@ -1,0 +1,11 @@
+{
+  "task_id": "codenet_p03149",
+  "prompt": "Statement\n\nYou are given four digits N_1, N_2, N_3 and N_4. Determine if these can be\narranged into the sequence of digits \"1974\".",
+  "solution": "print(\"YNEOS\"[set(map(int, input().split())) != {1, 7, 9, 4} :: 2])\n",
+  "test": [
+    {
+      "input": "1 7 9 4",
+      "output": "YES\\n    \\n\\nWe can get 1974 by swapping N_2 and N_3.\\n\\n* * *"
+    }
+  ]
+}
