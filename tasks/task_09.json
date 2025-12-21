@@ -1,0 +1,11 @@
+{
+  "task_id": "codenet_p03466",
+  "prompt": "Statement\n\nLet f(A, B), where A and B are positive integers, be the string satisfying the\nfollowing conditions:\n\n  * f(A, B) has length A + B;\n  * f(A, B) contains exactly A letters `A` and exactly B letters `B`;\n  * The length of the longest substring of f(A, B) consisting of equal letters (ex., `AAAAA` or `BBBB`) is as small as possible under the conditions above;\n  * f(A, B) is the lexicographically smallest string satisfying the conditions above.\n\nFor example, f(2, 3) = `BABAB`, and f(6, 4) = `AABAABAABB`.\n\nAnswer Q queries: find the substring of f(A_i, B_i) from position C_i to\nposition D_i (1-based).",
+  "solution": "for t in range(int(input())):\n  a,b,c,d=map(int,input().split(' '));l,x,y,o=(a+b)//(min(a,b)+1),0,0,\"\"\n\tif a*l<=b:y=a+b\n\telif b*l<=a:x=a+b\n\telse:x,y=(a*l-b)//(l-1),(b*l-a)//(l-1)\n\tfor i in range(c,d+1):o+=\"AB\"[i%(l+1)==0] if i<=x else \"BA\"[(a+b-i+1)%(l+1)==0] if a+b-i+1<=y else \"AB\"[a-x+x//(l+1)-y//(l+1)==0]\n\tprint(o)",
+  "test": [
+    {
+      "input": "5\\n    2 3 1 5\\n    6 4 1 10\\n    2 3 4 4\\n    6 4 3 7\\n    8 10 5 8",
+      "output": "BABAB\\n    AABAABAABB\\n    A\\n    BAABA\\n    ABAB"
+    }
+  ]
+}
