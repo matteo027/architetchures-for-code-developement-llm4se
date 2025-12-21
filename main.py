@@ -15,6 +15,8 @@ from agents.planner import PlannerAgent
 from agents.coder import CoderAgent
 from agents.tester import TesterAgent
 from agents.commenter import CommenterAgent
+from agents.refiner import RefinerAgent
+from agents.reviewer import ReviewerAgent
 from radon.metrics import mi_visit
 from radon.metrics import ComplexityVisitor
 import time
@@ -24,9 +26,22 @@ MAX_RETRIES = 10
 
 MODEL_ID_LARGE = "meta-llama/Llama-2-7b-hf" # big LLM
 MODEL_ID_SMALL = "gpt2"                      # small LLM
+MODEL_ID_MISTRAL = "mistralai/Mistral-7B-Instruct-v0.3" # planner LLM
 
 LLM_LARGE_CLIENT = LLMClient(model_id=MODEL_ID_LARGE)
 LLM_SMALL_CLIENT = LLMClient(model_id=MODEL_ID_SMALL)
+LLM_MISTRAL_CLIENT = LLMClient(model_id=MODEL_ID_MISTRAL)
+
+# from the paper
+MODEL_ID_LLAMA = "meta-llama/Llama-3-70B-Instruct"
+MODEL_ID_CLAUDE = "claude-3-5-sonnet-20240620"
+MODEL_ID_O1 = "openai/o1-preview"
+#MODEL_ID_MISTRAL = "mistralai/Mistral-7B-Instruct-v0.3"
+
+LLM_LLAMA = LLMClient(model_id=MODEL_ID_LLAMA)              # planner
+LLM_CLAUDE = LLMClient(model_id=MODEL_ID_CLAUDE)            # coder
+LLM_O1 = LLMClient(model_id=MODEL_ID_O1)                    # reviewer
+LLM_MISTRAL_CLIENT = LLMClient(model_id=MODEL_ID_MISTRAL)   # refiner
 
 def single_agent_arch(task_data, client):
   return client.ask(task_data['prompt'])
@@ -64,6 +79,48 @@ def run_pipeline(task_data, planner_client, coder_client, config_name):
 
   commenter = CommenterAgent(llm_client=LLM_SMALL_CLIENT)
   final_code = commenter.comment(current_code)
+  
+  return final_code
+
+def run_pipeline_paper(task_data, planner_client, coder_client, reviewer_client, refiner_client):
+  task_id = task_data['task_id']
+  prompt = task_data['prompt']
+  unit_tests = task_data['test']
+  
+  print(f"--- Running Paper Architecture (Reviewer-Refiner) on {task_id} ---")
+
+  planner = PlannerAgent(llm_client=planner_client)
+  plan = planner.plan(prompt)
+  
+  coder = CoderAgent(llm_client=coder_client)
+  reviewer = ReviewerAgent(llm_client=reviewer_client)
+  refiner = RefinerAgent(llm_client=refiner_client)
+  tester = TesterAgent()
+  
+  current_code = ""
+  feedback = ""
+  is_passing = False
+  attempts = 0
+
+  while attempts < MAX_RETRIES and not is_passing:
+    if attempts == 0:
+      current_code = coder.code(prompt, plan, current_code, feedback)
+    else:
+      current_code = refiner.refine(current_code, feedback)
+    
+    review_feedback = reviewer.review(current_code, prompt)
+    
+    success, error_msg = tester.test(current_code, unit_tests)
+    
+    if success and "APPROVED" in review_feedback.upper():
+      is_passing = True
+      print(f"  [Attempt {attempts+1}] Success & Approved!")
+    else:
+      feedback = f"Test Error: {error_msg}\nReview Feedback: {review_feedback}"
+      attempts += 1
+      print(f"  [Attempt {attempts}] Failed or Needs Refinement. Retrying...")
+
+  final_code = current_code
   
   return final_code
 
@@ -188,11 +245,11 @@ def __main__():
 
     result = single_agent_arch(task_data, LLM_LARGE_CLIENT)
     results.append(result)
-    result = run_pipeline(task_data, LLM_SMALL_CLIENT, LLM_LARGE_CLIENT, "Architeture 2")
+    result = run_pipeline(task_data, LLM_MISTRAL_CLIENT, LLM_LARGE_CLIENT, "Architeture 2")
     results.append(result)
     result = run_pipeline(task_data, LLM_LARGE_CLIENT, LLM_SMALL_CLIENT, "Architeture 3")
     results.append(result)
-    #result = run_pipeline_paper(task_data, LLM_LARGE_CLIENT, LLM_SMALL_CLIENT)
+    result = run_pipeline_paper(task_data, LLM_LLAMA, LLM_CLAUDE, LLM_O1, LLM_MISTRAL_CLIENT)
     results.append(result)
 
     # evaluation
