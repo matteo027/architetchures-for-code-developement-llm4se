@@ -57,7 +57,9 @@ def run_pipeline(task_data, planner_client, coder_client, tester_client, comment
   plan = planner.plan(prompt)
  
   coder = CoderAgent(llm_client=coder_client)
+
   tester = TesterAgent(llm_client=tester_client)
+  tests  = tester.generate_tests(prompt, unit_tests)
   
   current_code = ""
   feedback = ""
@@ -67,7 +69,7 @@ def run_pipeline(task_data, planner_client, coder_client, tester_client, comment
   while attempts < MAX_RETRIES and not is_passing:
     current_code = coder.code(prompt, plan, current_code, feedback)
     
-    success, error_msg = tester.test(current_code, unit_tests)
+    success, error_msg = tester.test(current_code, tests)
     
     if success:
       is_passing = True
