@@ -1,15 +1,16 @@
 import json
 import os
-from tests.tests_task1 import TestTask1
+from tests.tests_task01 import TestTask1
+from tests.tests_task02 import TestTask2
+from tests.tests_task03 import TestTask3
+from tests.tests_task04 import TestTask4
+from tests.tests_task05 import TestTask5
+from tests.tests_task06 import TestTask6
+from tests.tests_task07 import TestTask7
+from tests.tests_task08 import TestTask8
+from tests.tests_task09 import TestTask9
 from tests.tests_task10 import TestTask10
-from tests.tests_task2 import TestTask2
-from tests.tests_task3 import TestTask3
-from tests.tests_task4 import TestTask4
-from tests.tests_task5 import TestTask5
-from tests.tests_task6 import TestTask6
-from tests.tests_task7 import TestTask7
-from tests.tests_task8 import TestTask8
-from tests.tests_task9 import TestTask9
+
 from utils.llm_client import LLMClient
 from agents.planner import PlannerAgent
 from agents.coder import CoderAgent
