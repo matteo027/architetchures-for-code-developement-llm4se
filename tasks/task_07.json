@@ -1,11 +1,8 @@
 {
-  "task_id": "codenet_p03149",
-  "prompt": "Statement\n\nYou are given four digits N_1, N_2, N_3 and N_4. Determine if these can be\narranged into the sequence of digits \"1974\".",
-  "solution": "print(\"YNEOS\"[set(map(int, input().split())) != {1, 7, 9, 4} :: 2])\n",
-  "test": [
-    {
-      "input": "1 7 9 4",
-      "output": "YES\\n    \\n\\nWe can get 1974 by swapping N_2 and N_3.\\n\\n* * *"
-    }
-  ]
+  "task_id": "CodeNet/p03149",
+  "prompt": "from typing import List\n\n\ndef can_form_1974(digits: List[int]) -> str:\n    \"\"\"\n    Given a list of four digits, determine whether they can be rearranged\n    to form the sequence 1974.\n\n    Return \"YES\" if possible, otherwise return \"NO\".\n\n    >>> can_form_1974([1, 7, 9, 4])\n    'YES'\n    >>> can_form_1974([1, 1, 9, 4])\n    'NO'\n    \"\"\"\n",
+  "entry_point": "can_form_1974",
+  "canonical_solution": "    return \"YES\" if set(digits) == {1, 7, 9, 4} else \"NO\"\n",
+  "test": "\n\nMETADATA = {\n    'author': 'codenet',\n    'dataset': 'codenet'\n}\n\n\ndef check(candidate):\n    assert candidate([1, 7, 9, 4]) == 'YES'\n    assert candidate([4, 9, 7, 1]) == 'YES'\n    assert candidate([1, 1, 9, 4]) == 'NO'\n    assert candidate([0, 1, 9, 4]) == 'NO'\n\n"
 }
+
