@@ -32,8 +32,8 @@ class PlannerAgent():
 
         response_text, _, _ = self.llm_client.generate_response(
             full_prompt, 
-            max_new_tokens = 200, 
-            temperature = 0.2, 
+            max_new_tokens = 400, 
+            temperature = 0.1, 
             deterministic = True) 
 
         return response_text
