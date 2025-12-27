@@ -1,4 +1,5 @@
 {
+  "task_id": "Task20", 
   "prompt": "from typing import Tuple\n\n\ndef longest_common_subsequence(a: str, b: str) -> int:\n    \"\"\"\n    Given two strings a and b, compute the length of their Longest Common Subsequence (LCS).\n    The subsequence does not need to be contiguous.\n    \"\"\"\n    pass\n",
   "entry_point": "longest_common_subsequence",
   "canonical_solution": "",
