@@ -32,7 +32,7 @@ class PlannerAgent():
 
         response_text, _, _ = self.llm_client.generate_response(
             full_prompt, 
-            max_new_tokens = 400, 
+            max_new_tokens = 1000, 
             temperature = 0.1, 
             deterministic = True) 
 
