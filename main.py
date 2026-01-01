@@ -33,6 +33,10 @@ from radon.metrics import ComplexityVisitor
 import time
 from dotenv import load_dotenv
 from huggingface_hub import login
+import re
+import gc
+import torch
+import shutil
 
 # load variables from the .env file
 load_dotenv()
@@ -53,12 +57,14 @@ MODEL_ID_SMALL = "Qwen/Qwen2.5-Coder-1.5B-Instruct" #small LLM
 MODEL_ID_MISTRAL = "mistralai/Mistral-7B-Instruct-v0.3" # planner LLM
 MODEL_ID_DISTILL_LLAMA = "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" # planner LLM
 MODEL_ID_QWEN = "Qwen/Qwen2.5-Coder-7B-Instruct"
+MODEL_ID_QWEN_SA = "Qwen/Qwen2.5-Coder-14B-Instruct"
 
 LLM_LARGE_CLIENT = LLMClient(model_id=MODEL_ID_LARGE)
 LLM_SMALL_CLIENT = LLMClient(model_id=MODEL_ID_SMALL)
 LLM_MISTRAL_CLIENT = LLMClient(model_id=MODEL_ID_MISTRAL)
-LLM_DISTILL_LLAMA_CLIENT = LLMClient(model_id=MODEL_ID_LLAMA)
+LLM_DISTILL_LLAMA_CLIENT = LLMClient(model_id=MODEL_ID_DISTILL_LLAMA)
 LLM_QWEN = LLMClient(model_id=MODEL_ID_QWEN)
+LLM_QWEN_SA = LLMClient(model_id=MODEL_ID_QWEN_SA)
 
 # from the paper
 MODEL_ID_LLAMA = "meta-llama/Llama-3-70B-Instruct"
@@ -71,8 +77,45 @@ LLM_CLAUDE = LLMClient(model_id=MODEL_ID_CLAUDE)            # coder
 LLM_O1 = LLMClient(model_id=MODEL_ID_O1)                    # reviewer
 LLM_MISTRAL_CLIENT = LLMClient(model_id=MODEL_ID_MISTRAL)   # refiner
 
+def clear_hf_cache():
+  """Removes downloaded models to free space on the disk"""
+  cache_path = os.path.expanduser("~/.cache/huggingface/hub")
+  if os.path.exists(cache_path):
+    shutil.rmtree(cache_path)
+    os.makedirs(cache_path)
+  print("--- Hugging Face Cache Cleared ---")
+
 def single_agent_arch(task_data, client):
-  return client.generate_response(task_data['prompt'])[0]
+  # The original task prompt from HumanEval
+  problem_description = task_data['prompt']
+    
+  prompt = f"""### Role:
+    You are an expert Python Software Engineer.
+
+    ### Task:
+    Solve the following programming challenge. You must ensure the code is production-ready, passes all edge cases, and includes necessary imports.
+
+    ### Problem:
+    {problem_description}
+
+    ### Strict Constraints:
+    1. **IMPORTS**: Always include necessary imports at the top (e.g., `from typing import List, Optional, Dict, Tuple`).
+    2. **FORMAT**: Output ONLY the Python code. Do NOT include any conversational filler, explanations, or introductory text like "Sure, here is the code".
+    3. **WRAPPING**: Wrap your code strictly within a single markdown block: ```python [code] ```.
+    4. **SIGNATURE**: Do not change the function name or the provided signature format.
+    5. **EDGE CASES**: Explicitly handle null inputs, empty lists, or extreme values as described.
+
+    ### Implementation:
+    """
+  response = client.generate_response(prompt)[0]
+  code_match = re.search(r"```python\s*(.*?)```", response, re.DOTALL | re.IGNORECASE)
+  if code_match:
+      extracted_code = code_match.group(1).strip()
+  else:
+      extracted_code = response.strip()
+      
+  print("Single agent code generated:", extracted_code)
+  return extracted_code
 
 def run_pipeline(task_data, planner_client, coder_client, tester_client, commenter_client, config_name):
   task_id = task_data['task_id']
@@ -113,52 +156,45 @@ def run_pipeline(task_data, planner_client, coder_client, tester_client, comment
   
   return final_code
 
-def run_pipeline_paper(task_data, planner_client, coder_client, tester_client, reviewer_client, refiner_client):
+def run_pipeline_paper(task_data, planner_client, coder_client, reviewer_client, refiner_client):
   task_id = task_data['task_id']
   prompt = task_data['prompt']
-  unit_tests = task_data['test']
   
-  print(f"--- Running Paper Architecture (Reviewer-Refiner) on {task_id} ---")
+  print(f"--- Running Paper Architecture (Reviewer -> Refiner) on {task_id} ---")
 
   planner = PlannerAgent(llm_client=planner_client)
   plan = planner.plan(prompt)
   
   coder = CoderAgent(llm_client=coder_client)
-
-  tester = TesterAgent(llm_client = tester_client)
-  tests = tester.generate_tests(prompt, unit_tests)
-  print("generated tests:", tests)
-
   reviewer = ReviewerAgent(llm_client=reviewer_client)
   refiner = RefinerAgent(llm_client=refiner_client)
 
-  
   current_code = ""
   feedback = ""
   is_passing = False
   attempts = 0
 
-
   while attempts < MAX_RETRIES and not is_passing:
+    print(f"  > Step {attempts+1}/{MAX_RETRIES}")
+
     if attempts == 0:
       current_code = coder.code(prompt, plan, current_code, feedback)
     else:
-      current_code = refiner.refine(current_code, feedback)
+      current_code = refiner.refine(current_code, feedback, prompt)
     
     review_feedback = reviewer.review(current_code, prompt)
     
-    success, error_msg = tester.test(current_code, tests)
-    
-    if success and "APPROVED" in review_feedback.upper():
+    print(f"    Reviewer says: {review_feedback[:100]}...")
+
+    if "APPROVED" in review_feedback.upper():
       is_passing = True
-      print(f"  [Attempt {attempts+1}] Success & Approved!")
+      print(f"  [Attempt {attempts+1}] Success! Code Approved by Reviewer.")
     else:
-      feedback = f"Test Error: {error_msg}\nReview Feedback: {review_feedback}"
+      feedback = review_feedback
       attempts += 1
-      print(f"  [Attempt {attempts}] Failed or Needs Refinement. Retrying...")
+      print(f"  [Attempt {attempts}] Reviewer found issues. Refining...")
 
   final_code = current_code
-  
   return final_code
 
 def choose_code(codes, fun_name, task_number):
@@ -222,10 +258,16 @@ def choose_code(codes, fun_name, task_number):
           score = (time_norm * 0.50) + (mi_norm * 0.30) + (cc_norm * 0.20)
           print(f"\nTotal score: {score}")
 
+          # Save metrics to file
+          save_metrics(task_number, index+1, MI, CC, execution_time, score)
+
           if best_code is None or score > best_score:
             best_code = code
             best_score = score
             best_arch = index+1
+        
+        else:
+          save_metrics(task_number, index+1, -1, -1, -1, -1) # not passed
 
       else:
         print(f"\t[ERROR] Unable to retreive the generated function.")
@@ -264,6 +306,23 @@ def get_cyclomatic_complexity(code):
     print(f"[DEBUG]: Error calculating CC: {e}")
     return 1
 
+def save_metrics(task_number, architecture_index, mi, cc, execution_time, score):
+  """Save metrics to a CSV file"""
+  import csv
+  metrics_file = "metrics_results.csv"
+  file_exists = os.path.exists(metrics_file)
+  
+  with open(metrics_file, 'a', newline='') as f:
+    writer = csv.writer(f)
+    
+    # Write header if file doesn't exist
+    if not file_exists:
+      writer.writerow(['Task', 'Architecture', 'MI', 'CC', 'Execution_Time', 'Score'])
+    
+    writer.writerow([task_number, architecture_index, f"{mi:.2f}", f"{cc:.2f}", f"{execution_time:.6f}", f"{score:.4f}"])
+  
+  print(f"\tMetrics saved to {metrics_file}")
+
 def main():
 
   print("Architetures:")
@@ -282,14 +341,22 @@ def main():
     print(f"Task {i+1}")
     results = list()
 
-    #result = single_agent_arch(task_data, LLM_LARGE_CLIENT)
-    #results.append(result)
+    # (pre) cleaning
+    gc.collect()
+    torch.cuda.empty_cache()
+    clear_hf_cache()
+    result = single_agent_arch(task_data, LLM_QWEN_SA)
+    results.append(result)
     result = run_pipeline(task_data, LLM_MISTRAL_CLIENT, LLM_QWEN, LLM_QWEN, LLM_SMALL_CLIENT, "Architeture 2")
     results.append(result)
     result = run_pipeline(task_data, LLM_DISTILL_LLAMA_CLIENT, LLM_QWEN, LLM_QWEN, LLM_SMALL_CLIENT, "Architeture 3")
     results.append(result)
-    #result = run_pipeline_paper(task_data, LLM_LLAMA, LLM_CLAUDE, LLM_QWEN, LLM_O1, LLM_MISTRAL_CLIENT)
-    #results.append(result)
+    # cleaning
+    gc.collect()
+    torch.cuda.empty_cache()
+    clear_hf_cache()
+    result = run_pipeline_paper(task_data, LLM_LLAMA, LLM_CLAUDE, LLM_O1, LLM_MISTRAL_CLIENT)
+    results.append(result)
 
     # evaluation
     best_code, best_arch = choose_code(results, task_data['entry_point'], i+1)
@@ -297,7 +364,7 @@ def main():
     if best_code:
       print(f"\nThe best code has been generated by architectre {best_arch}.")
 
-      output_path = f"code/task{i+1}.py"
+      output_path = f"code/task{i+1:02}.py"
       os.makedirs("code", exist_ok=True)
       with open(output_path, "w") as f_out:
         f_out.write(best_code)
