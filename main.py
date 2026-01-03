@@ -308,15 +308,9 @@ def main():
 
     result = single_agent_arch(task_data, LLM_QWEN_SA)
     results.append(result)
-
-    # cleaning
-    clear_hf_cache()
-
-    result = run_pipeline(task_data, LLM_MISTRAL_CLIENT, LLM_QWEN, LLM_MISTRAL_CLIENT, LLM_SMALL_CLIENT, "Architeture 2")
+    result = run_pipeline(task_data, LLM_MISTRAL_CLIENT, LLM_QWEN, LLM_QWEN, LLM_SMALL_CLIENT, "Architeture 2")
     results.append(result)
-    result = run_pipeline(task_data, LLM_MISTRAL_CLIENT, LLM_MISTRAL_CLIENT, LLM_MISTRAL_CLIENT, LLM_SMALL_CLIENT, "Architeture 3")
-    results.append(result)
-    result = run_pipeline(task_data, LLM_DISTILL_LLAMA_CLIENT, LLM_QWEN, LLM_MISTRAL_CLIENT, LLM_SMALL_CLIENT, "Architeture 4")
+    result = run_pipeline(task_data, LLM_DISTILL_LLAMA_CLIENT, LLM_QWEN, LLM_QWEN, LLM_SMALL_CLIENT, "Architeture 3")
     results.append(result)
     result = run_pipeline(task_data, LLM_DISTILL_LLAMA_CLIENT, LLM_MISTRAL_CLIENT, LLM_MISTRAL_CLIENT, LLM_SMALL_CLIENT, "Architeture 5")
     results.append(result)

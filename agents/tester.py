@@ -1,4 +1,3 @@
-import traceback
 import re
 import textwrap
 
@@ -6,170 +5,102 @@ class TesterAgent:
     def __init__(self, llm_client):
         self.llm_client = llm_client
 
-    def generate_tests(self, raw_task_prompt, basic_json_tests, entry_point):
-        """Genera i test e ripara automaticamente l'indentazione."""
+    def prepare_review_context(self, task_prompt, basic_json_tests, entry_point):
+        """
+        In questa modalità 'Static Review', non generiamo codice Python eseguibile.
+        Invece, prepariamo il 'Contesto di Verifica' che il revisore userà.
+        """
+        context = f"""
+        TASK DESCRIPTION:
+        {task_prompt}
+
+        ENTRY POINT FUNCTION:
+        {entry_point}
+
+        REQUIRED BEHAVIOR (JSON TESTS):
+        {basic_json_tests}
+        """
+        return context
+
+    def perform_static_review(self, current_code, context):
+        """
+        Analizza il codice staticamente usando l'LLM.
+        Restituisce (True, "Passed") se il codice sembra corretto,
+        altrimenti (False, Feedback).
+        """
         
-        # 1. Estrazione Descrizione
-        description = "Generate tests based on logic."
-        if '"""' in raw_task_prompt:
-            parts = raw_task_prompt.split('"""')
-            if len(parts) >= 2: description = parts[1].strip()
-        elif "'''" in raw_task_prompt:
-            parts = raw_task_prompt.split("'''")
-            if len(parts) >= 2: description = parts[1].strip()
-
-        # 2. Prompt Unificato (Senza indentazione iniziale richiesta)
-        full_prompt = textwrap.dedent(f"""\
-            # ROLE
-            You are a Senior Python QA Engineer.
-
-            # TASK DATA
-            - Target Function: `{entry_point}`
-            - Logic: "{description}"
-
-            # BASIC TESTS:
-            {basic_json_tests}
-
-            # INSTRUCTIONS
-            Write a Python test script.
-            1. Import necessary libraries.
-            2. Define `def run_tests(candidate):`.
-            3. Inside `run_tests`, paste Basic Tests and add 3-5 NEW edge cases.
-            4. Call `run_tests({entry_point})` at the end.
+        # Costruiamo il prompt per il Revisore/Tester
+        review_prompt = textwrap.dedent(f"""\
+            You are a Senior Python QA Engineer performing a Static Code Analysis.
             
-            # OUTPUT FORMAT
-            Return ONLY the raw Python code block enclosed in ```python ... ```.
+            ### GOAL
+            Verify if the provided PYTHON CODE correctly solves the TASK and satisfies the REQUIRED BEHAVIOR.
             
-            # SOLUTION
+            ### TASK CONTEXT
+            {context}
+            
+            ### CANDIDATE CODE TO REVIEW
             ```python
+            {current_code}
+            ```
+            
+            ### INSTRUCTIONS
+            1. Mentally trace the execution of the code with the provided JSON inputs.
+            2. Check for syntax errors, logical bugs, or infinite loops.
+            3. Check if the function signature matches the entry point exactly.
+            4. Be STRICT. If there is any logical flaw, reject it.
+            
+            ### OUTPUT FORMAT
+            You must end your response with exactly one of these two lines:
+            - If code is correct: "STATUS: PASS"
+            - If code is incorrect: "STATUS: FAIL" followed by a concise explanation of the bug.
+            
+            Start your response with your reasoning.
             """)
 
-        # 3. Generazione
+        # Chiamata all'LLM (Usa un numero di token sufficiente per il ragionamento)
         response_text, _, _ = self.llm_client.generate_response(
-            full_prompt, 
-            max_new_tokens=800, 
-            temperature=0.2,
+            review_prompt, 
+            max_new_tokens=1024, 
+            temperature=0.0, # Determinismo massimo per la review
             deterministic=True
         )
+
+        # Parsing della risposta
+        return self._parse_review_result(response_text)
+
+    def _parse_review_result(self, response):
+        """Analizza l'output testuale dell'LLM per determinare Pass/Fail."""
         
-        print(f"[DEBUG] Raw Tester Response len: {len(response_text)}")
-
-        # Aggiungiamo il blocco che abbiamo aperto nel prompt
-        full_response = "```python\n" + response_text
-
-        # 4. Parsing e Riparazione Automatica
-        code = self._parse_and_clean_response(full_response)
-        print(code)
+        # Pulizia generica whitespace
+        clean_response = response.strip()
         
-        # 5. Fallback se manca la chiamata critica
-        if len(code) < 20 or "run_tests(" not in code:
-            print("[WARNING] Tester output broken. Using fallback wrapper.")
-            return self._create_fallback_suite(basic_json_tests, entry_point)
+        # Strategia: Cerca l'ULTIMA occorrenza di STATUS: PASS/FAIL
+        # Questo evita falsi positivi se il modello "pensa ad alta voce" prima di decidere.
+        # Rfind restituisce l'indice dell'inizio della stringa trovata, o -1.
+        pass_index = clean_response.rfind("STATUS: PASS")
+        fail_index = clean_response.rfind("STATUS: FAIL")
+        
+        # Se non trova nulla
+        if pass_index == -1 and fail_index == -1:
+            # Fallback euristico generico
+            lower_resp = clean_response.lower()
+            if "incorrect" in lower_resp or "error" in lower_resp or "bug" in lower_resp or "fail" in lower_resp:
+                 return False, f"Reviewer Ambiguous Failure: {clean_response}"
+            return False, f"Format Error: Reviewer did not output STATUS: PASS/FAIL.\nFull Response: {clean_response}"
 
-        return code
-
-    def _create_fallback_suite(self, basic_tests, entry_point):
-        """Crea un wrapper manuale se l'LLM fallisce."""
-        if "def check" in basic_tests:
-            return f"""
-from typing import List, Dict, Any, Tuple, Optional
-import math
-
-# Basic Tests provided
-{basic_tests}
-
-# Fallback Execution
-try:
-    check({entry_point})
-except NameError:
-    pass
-"""
+        # Se trova entrambi (raro, ma possibile nel ragionamento), vince l'ultimo scritto
+        if pass_index > fail_index:
+            return True, "Passed (Static Analysis Approved)"
         else:
-            return f"""
-from typing import List, Dict, Any, Tuple, Optional
-import math
-
-def run_tests(candidate):
-    # Basic Asserts
-{textwrap.indent(basic_tests, '    ')}
-
-# Execute
-run_tests({entry_point})
-"""
-
-    def _parse_and_clean_response(self, response_text):
-        """Estrae e pulisce in modo intelligente l'indentazione mista."""
-        # 1. Estrai contenuto dai backticks
-        match = re.search(r"```python\s*(.*?)```", response_text, re.DOTALL | re.IGNORECASE)
-        if match:
-            code = match.group(1)
-        else:
-            match = re.search(r"```\s*(.*?)```", response_text, re.DOTALL)
-            code = match.group(1) if match else response_text
-        
-        code = code.strip()
-
-        # 2. SMART DEDENT: Il cuore della correzione
-        lines = code.splitlines()
-        
-        # Cerchiamo l'indentazione della funzione principale
-        main_indent = ""
-        for line in lines:
-            if "def run_tests(" in line:
-                # Cattura gli spazi prima di 'def run_tests'
-                main_indent = line[:line.find("def run_tests")]
-                break
-        
-        # Se abbiamo trovato un'indentazione "spuria", la rimuoviamo da tutte le righe
-        if main_indent:
-            cleaned_lines = []
-            for line in lines:
-                if line.startswith(main_indent):
-                    cleaned_lines.append(line[len(main_indent):])
-                else:
-                    # Se la riga non ha quell'indentazione (es. un import messo a sinistra)
-                    # La puliamo semplicemente dagli spazi iniziali
-                    cleaned_lines.append(line.lstrip())
-            return "\n".join(cleaned_lines)
-        
-        # Fallback: dedent standard se non troviamo run_tests indentato
-        return textwrap.dedent(code)
-
-    def _sanitize_external_code(self, dirty_code):
-        """
-        Pulisce il codice del CoderAgent in modo conservativo.
-        """
-        if not dirty_code: return ""
-        
-        # 1. Rimuove markdown
-        dirty_code = dirty_code.replace("```python", "").replace("```", "")
-        
-        # 2. Corregge glitch noti di Qwen
-        dirty_code = re.sub(r"(^|\n)rom ", r"\1from ", dirty_code)
-        dirty_code = re.sub(r"(^|\n)mport ", r"\1import ", dirty_code)
-
-        # 3. DEDENT GLOBALE (Senza spaccare le funzioni interne!)
-        # textwrap.dedent rimuove solo l'indentazione comune a TUTTE le righe.
-        # Se il coder ha indentato tutto di 4 spazi, li toglie.
-        # Se c'è una riga vuota dentro una funzione, NON rompe più la funzione.
-        return textwrap.dedent(dirty_code).strip()
-
-    def test(self, code_to_test, test_suite_code):
-        namespace = {}
-        try:
-            # Pulisce ed esegue il Coder
-            cleaned_coder_code = self._sanitize_external_code(code_to_test)
-            header = "from typing import List, Dict, Optional, Any, Tuple\nimport math\n"
-            full_coder_code = header + "\n" + cleaned_coder_code
-            exec(full_coder_code, namespace)
-        except Exception:
-            return False, f"CODER ERROR (Syntax):\n{cleaned_coder_code}\n\nTraceback:\n{traceback.format_exc()}"
-
-        try:
-            # Esegue i test (ora puliti dallo Smart Dedent)
-            exec(test_suite_code, namespace)
-            return True, "Passed"
-        except SyntaxError:
-             return False, f"TEST SYNTAX ERROR:\n{test_suite_code}\n\nTraceback:\n{traceback.format_exc()}"
-        except Exception:
-            return False, f"TEST FAILURE:\n{traceback.format_exc()}"
+            # È un FAIL. Estraiamo la spiegazione che segue lo status.
+            # Prendiamo tutto il testo che viene DOPO "STATUS: FAIL"
+            feedback_start = fail_index + len("STATUS: FAIL")
+            feedback = clean_response[feedback_start:].strip()
+            
+            if not feedback:
+                # Se lo status era l'ultima cosa, cerchiamo il feedback nelle righe precedenti
+                # (Euristica opzionale, ma utile)
+                feedback = clean_response[:fail_index].strip()[-500:] # Prendi gli ultimi 500 caratteri prima
+            
+            return False, feedback

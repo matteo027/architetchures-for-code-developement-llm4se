@@ -1,5 +1,6 @@
 import re
 from utils.llm_client import LLMClient
+import textwrap
 
 class CoderAgent:
 
@@ -103,7 +104,7 @@ class CoderAgent:
     code_lines = []
     
     # Identifichiamo parole chiave che segnalano l'inizio del codice reale
-    code_keywords = ("import ", "from ", "def ")
+    code_keywords = ("import ", "from ", "def ", "class ")
     
     in_code_block = False
     for line in lines:
@@ -120,5 +121,9 @@ class CoderAgent:
                 code_lines.append(line)
             else:
                 break
+            
+    raw_code = "\n".join(code_lines)
+    return textwrap.dedent(raw_code).strip()
 
-    return "\n".join(code_lines).strip()
+  
+  
