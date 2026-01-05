@@ -125,10 +125,7 @@ def run_pipeline(task_data, planner_client, coder_client, tester_client, comment
   coder = CoderAgent(llm_client=coder_client)
   tester = TesterAgent(llm_client=tester_client)
   
-  if hasattr(tester, 'generate_tests'):
-    tests = tester.generate_tests(prompt, unit_tests, entry_point)
-  else:
-    tests = tester.prepare_review_context(prompt, unit_tests, entry_point)
+  context = tester.prepare_review_context(prompt, unit_tests, entry_point)
 
   current_code = ""
   feedback = ""
@@ -137,11 +134,9 @@ def run_pipeline(task_data, planner_client, coder_client, tester_client, comment
 
   while attempts < MAX_RETRIES and not is_passing:
     current_code = coder.code(prompt, plan, current_code, feedback)
+    print(f"  [DEBUG] Code generated:\n", current_code)
     
-    if hasattr(tester, 'test'):
-      success, error_msg = tester.test(current_code, tests)
-    else:
-      success, error_msg = tester.perform_static_review(current_code, tests)
+    success, error_msg = tester.perform_static_review(current_code, context)
     
     if success:
       is_passing = True
@@ -150,6 +145,7 @@ def run_pipeline(task_data, planner_client, coder_client, tester_client, comment
       feedback = f"The code failed tests. Error: {error_msg}"
       attempts += 1
       print(f"  [Attempt {attempts}] Failed.")
+      print(f"  [DEBUG] error_msg: {error_msg}")
 
   commenter = CommenterAgent(llm_client=commenter_client)
   final_code = commenter.comment(current_code)
