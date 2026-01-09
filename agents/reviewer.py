@@ -70,7 +70,7 @@ class ReviewerAgent:
         response_text, _, _ = self.llm_client.generate_response(
             review_prompt, 
             max_new_tokens=512, 
-            temperature=0.10 
+            temperature=0.0, 
             deterministic=True
         )
         
