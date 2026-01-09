@@ -70,8 +70,8 @@ class ReviewerAgent:
         response_text, _, _ = self.llm_client.generate_response(
             review_prompt, 
             max_new_tokens=512, 
-            temperature=0.1, 
-            deterministic=False
+            temperature=0.10 
+            deterministic=True
         )
         
         # Riattacchiamo "Analysis:" perché il modello completa la frase
