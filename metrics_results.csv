@@ -7,6 +7,7 @@ Task,Architecture,Passed,Tests_Ratio,MI,CC,Time,Score
 2,1_SingleAgent,YES,6/6,65.29,2.00,0.000003,0.7959
 2,2_Mistral_Qwen,YES,6/6,62.78,5.00,0.000002,0.7283
 2,3_Mistral_Nemo,ERROR,0/0,-1.00,-1.00,-1.000000,-1.0000
+2,4_DeepSeek_Qwen,YES,6/6,61.04,6.00,0.000001,0.7165
 3,1_SingleAgent,YES,6/6,100.00,1.00,0.000002,1.0000
 5,1_SingleAgent,NO,1/4,-1.00,-1.00,-1.000000,-1.0000
 5,2_Mistral_Qwen,ERROR,0/0,-1.00,-1.00,-1.000000,-1.0000
