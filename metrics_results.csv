@@ -39,6 +39,11 @@ Task,Architecture,Passed,Tests_Ratio,MI,CC,Time,Score
 8,3_Mistral_Nemo,NO,2/5,-1.00, -1.00,-1.000000,-1.0000
 8,4_DeepSeek_Qwen,YES,5/5,70.61,3.00,0.000000,0.7785
 8,5_DeepSeek_Nemo,ERROR,0/0,-1.00,-1.00,-1.000000,-1.0000
+9,1_SingleAgent,NO_FUNC,0/0,-1.00,-1.00,-1.000000,-1.0000
+9,2_Mistral_Qwen,NO,3/6,-1.00,-1.00,-1.000000,-1.0000
+9,3_Mistral_Nemo,NO,0/6,-1.00,-1.00,-1.000000,-1.0000
+9,4_DeepSeek_Qwen,NO,4/6,-1.00,-1.00,-1.000000,-1.0000
+9,5_DeepSeek_Nemo,ERROR,0/0,-1.00,-1.00,-1.000000,-1.0000
 13,1_SingleAgent,NO_FUNC,0/0,-1.00,-1.00,-1.000000,-1.0000
 13,2_Mistral_Qwen,NO,1/9,-1.00,-1.00,-1.000000,-1.0000
 13,3_Mistral_Nemo,NO,5/9,-1.00,-1.00,-1.000000,-1.0000
@@ -49,3 +54,8 @@ Task,Architecture,Passed,Tests_Ratio,MI,CC,Time,Score
 14,3_Mistral_Nemo,ERROR,0/0,-1.00,-1.00,-1.000000,-1.0000
 14,4_DeepSeek_Qwen,ERROR,0/0,-1.00,-1.00,-1.000000,-1.0000
 14,5_DeepSeek_Nemo,ERROR,0/0,-1.00,-1.00,-1.000000,-1.0000
+15,1_SingleAgent,YES,7/7,89.11,5.00,0.000000,0.8073
+15,2_Mistral_Qwen,YES,7/7,86.09,7.00,0.000001,0.7868
+15,3_Mistral_Nemo,NO_FUNC,0/0,-1.00,-1.00,-1.000000,-1.0000
+15,4_DeepSeek_Qwen,YES,7/7,90.01,5.00,0.000001,0.8100
+15,5_DeepSeek_Nemo,YES,7/7,54.73,7.00,0.000002,0.6928
