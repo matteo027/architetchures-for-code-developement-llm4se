@@ -5,7 +5,7 @@ class TestTask17:
     self.fun = min_two_bells
 
   def get_benchmark_input(self):
-    return (700, 600, 780)
+    return ([700, 600, 780],)
 
   def execute_tests(self):
     tests_passed = 0
@@ -23,26 +23,26 @@ class TestTask17:
     return tests_passed, total_tests
 
   def test_01_basic_case(self):
-    assert self.fun(700, 600, 780) == 1300
+    assert self.fun([700, 600, 780]) == 1300
 
   def test_02_first_two_cheapest(self):
-    assert self.fun(100, 200, 500) == 300
+    assert self.fun([100, 200, 500]) == 300
 
   def test_03_last_two_cheapest(self):
-    assert self.fun(1000, 100, 200) == 300
+    assert self.fun([1000, 100, 200]) == 300
 
   def test_04_first_and_last_cheapest(self):
-    assert self.fun(100, 500, 200) == 300
+    assert self.fun([100, 500, 200]) == 300
 
   def test_05_all_same_price(self):
-    assert self.fun(100, 100, 100) == 200
+    assert self.fun([100, 100, 100]) == 200
 
   def test_06_two_same_prices(self):
-    assert self.fun(100, 100, 200) == 200
-    assert self.fun(200, 100, 100) == 200
+    assert self.fun([100, 100, 200]) == 200
+    assert self.fun([200, 100, 100]) == 200
 
   def test_07_large_values(self):
-    assert self.fun(10000, 20000, 30000) == 30000
+    assert self.fun([10000, 20000, 30000]) == 30000
 
   def test_08_minimum_values(self):
-    assert self.fun(1, 1, 1) == 2
+    assert self.fun([1, 1, 1]) == 2

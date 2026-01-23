@@ -1,8 +1,17 @@
+def is_palindrome(s: str) -> bool:
+    return s == s[::-1]
+
+
 def make_palindrome(string: str) -> str:
-    longest_palindrome_suffix = ''
-    for i in range(len(string), 0, -1):
-        if is_palindrome(string[i-1:]):
-            longest_palindrome_suffix = string[i-1:]
-            break
-    prefix_to_add = string[:len(string)-len(longest_palindrome_suffix)]
-    return longest_palindrome_suffix + prefix_to_add[::-1]
+    if not string:
+        return ''
+    
+    # Find the longest palindromic suffix
+    for i in range(len(string)):
+        suffix = string[i:]
+        if is_palindrome(suffix):
+            # Reverse the prefix (part before the palindromic suffix) and append
+            prefix = string[:i]
+            return string + prefix[::-1]
+    
+    return string
