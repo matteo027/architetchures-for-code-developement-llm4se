@@ -21,3 +21,5 @@ tqdm
 
 protobuf
 sentencepiece
+
+google-generativeai
