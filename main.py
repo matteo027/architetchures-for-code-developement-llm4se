@@ -177,9 +177,42 @@ def measure_execution_time(func, input_data):
   end_time = time.perf_counter()
   return end_time - start_time
 
+def clean_code_for_metrics(code):
+  """
+  Removes comments (#) and docstring (""" """) from the code
+  """
+  try:
+    parsed = ast.parse(code)
+  except SyntaxError:
+    return code
+
+  # removing docstrings
+  for node in ast.walk(parsed):
+      if not isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef, ast.Module)):
+        continue
+      
+      if not node.body:
+        continue
+          
+      if isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, (ast.Constant, ast.Str)):
+          val = node.body[0].value
+          if isinstance(val, ast.Constant) and isinstance(val.value, str):
+              node.body.pop(0) 
+          elif hasattr(val, 's'): 
+              node.body.pop(0)
+
+  # removing comments
+  try:
+    return ast.unparse(parsed)
+  except AttributeError:
+    print("[WARN] ast.unparse not available.")
+    return code
+
 
 def calculate_maintainability(code):
-  try: return mi_visit(code, multi=True)
+  try:
+    cleaned_code = clean_code_for_metrics(code)
+    return mi_visit(cleaned_code, multi=True)
   except: return 0.0
 
 def get_cyclomatic_complexity(code):
@@ -250,7 +283,7 @@ def evaluate_and_log(code, arch_name, task_data, i):
   time_norm = target_time / exec_time_safe
   time_norm = min(time_norm, 1.0)
   
-  score = (time_norm * 0.4) + (mi_norm * 0.3) + (cc_norm * 0.3)
+  score = (time_norm * 0.4) + (mi_norm * 0.2) + (cc_norm * 0.4)
   save_metrics_to_csv(i+1, arch_name, mi, cc, exec_time, score)
   return score
 
