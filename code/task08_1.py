@@ -1,5 +1,6 @@
 from typing import List
 
+
 def is_odd_product(a: int, b: int) -> str:
     """Statement
 
