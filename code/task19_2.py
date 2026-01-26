@@ -1,19 +1,16 @@
 from typing import List
 
+
 def count_colors(colors: List[int]) -> int:
-    """
-    Counts the number of unique colors in a list of integers.
+    """Counts the number of unique colors in a list.
 
     Args:
-    colors (List[int]): A list of integers representing different colors.
+        colors: A list of integers representing colors.
 
     Returns:
-    int: The count of unique colors in the list.
+        The total count of distinct colors.
     """
-    color_count = {}
+    unique_colors = set()
     for color in colors:
-        if color in color_count:
-            color_count[color] += 1
-        else:
-            color_count[color] = 1
-    return len(color_count)
+        unique_colors.add(color)
+    return len(unique_colors)

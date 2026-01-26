@@ -2,24 +2,14 @@ from typing import List
 
 
 def min_two_bells(prices: List[int]) -> int:
-    if len(prices) < 2:
-        return 0
+    """Finds the sum of the two smallest bell prices.
 
-    min_price = float('inf')
-    min_price_index = -1
+    Args:
+        prices: A list of integer bell prices.
 
-    for i, price in enumerate(prices):
-        if i == 0 or price != prices[i-1]:
-            if price < min_price:
-                min_price = price
-                min_price_index = i
-
-    if min_price_index == -1:
-        return 0
-
-    second_min_price = float('inf')
-    for i, price in enumerate(prices):
-        if i != min_price_index and price < second_min_price:
-            second_min_price = price
-
-    return min_price + second_min_price
+    Returns:
+        The sum of the two smallest prices.
+    """
+    prices.sort()
+    # After sorting, the two smallest prices are at the beginning of the list.
+    return prices[0] + prices[1]

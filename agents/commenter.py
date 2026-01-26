@@ -5,28 +5,47 @@ class CommenterAgent:
     def __init__(self, llm_client):
         self.llm_client = llm_client
 
+        # PROMPT OTTIMIZZATO: Seniority alta, focus su intenti algoritmici
         self.system_prompt = textwrap.dedent("""\
-            You are a Commenter Agent in a multi-agent pipeline.
-            Your role is to add professional documentation to Python code.
+            You are a Senior Python Software Engineer specializing in code maintainability.
+            Your role is to refine the documentation of existing code without altering its behavior.
             
-            RULES:
-            1. Do NOT change variable names, logic, or function signatures.
-            2. Add Google-style docstrings.
-            3. Add concise inline comments for complex steps.
-            4. Output MUST be a single valid Python code block enclosed in markdown.
+            STRICT GUIDELINES:
+            1. **NO TRIVIAL COMMENTS**: Do NOT explain basic Python syntax or obvious operations (e.g., do NOT comment "increment i" or "import list").
+            2. **FOCUS ON ALGORITHMIC INTENT**: Inline comments must appear ONLY for complex logic, non-obvious mathematical formulas, or specific edge-case handling. Explain the "WHY", not the "WHAT".
+            3. **COMPACT DOCSTRINGS**: Use Google-style docstrings. Prioritize a clear, single-line summary. Avoid verbose descriptions for obvious arguments.
+            4. **PRESERVE LOGIC**: Do NOT change variable names, function signatures, or executable code.
+            
+            ### EXAMPLES
+            
+            [BAD - Do NOT do this]
+            def add(a, b):
+                # Returns the sum
+                return a + b # Adds a and b
+
+            [GOOD - Do this]
+            def calculate_moving_average(data, window):
+                #Computes simple moving average using a sliding window.
+                cumsum = [0]
+                # Efficiently calculate sum using prefix array to avoid O(N*W) complexity
+                for i, x in enumerate(data, 1):
+                    cumsum.append(cumsum[i-1] + x)
             """)
 
     def comment(self, code):
         full_prompt = textwrap.dedent(f"""\
             {self.system_prompt}
             
-            CODE TO COMMENT:
+            CODE TO DOCUMENT:
             ```python
             {code}
             ```
             
             INSTRUCTIONS:
-            Return the fully commented code inside a ```python ... ``` block.
+            Return the code with:
+            - A concise docstring for the main function/class.
+            - 1-2 essential inline comments ONLY if logic is complex.
+            - Output must be strictly valid Python code inside a markdown block.
             """)
 
         response_text, _, _ = self.llm_client.generate_response(
