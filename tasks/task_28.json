@@ -1,0 +1,7 @@
+{
+  "task_id": "MBPP/253",
+  "prompt": "def count_partitions(n: int) -> int:\n    \"\"\"Write a python function to count the number of ways to divide an integer 'n' into parts.\n    The parts must sum to 'n'. Order does not matter (e.g., 1+2 is the same as 2+1).\n    \n    >>> count_partitions(5)\n    7\n    \"\"\"\n",
+  "entry_point": "count_partitions",
+  "canonical_solution": "    partitions = [0] * (n + 1)\n    partitions[0] = 1\n    for i in range(1, n + 1):\n        for j in range(i, n + 1):\n            partitions[j] += partitions[j - i]\n    return partitions[n]\n",
+  "test": "\n\nMETADATA = {\n    'author': 'mbpp',\n    'dataset': 'test'\n}\n\n\ndef check(candidate):\n    assert candidate(5) == 7\n    assert candidate(15) == 176\n    assert candidate(25) == 1958\n"
+}
