@@ -1,7 +1,0 @@
-{
-  "task_id": "CodeNet/p03962",
-  "prompt": "from typing import List\n\n\ndef count_colors(colors: List[int]) -> int:\n    \"\"\"Statement\n\nAtCoDeer the deer recently bought three paint cans. The color of the one he\nbought two days ago is a, the color of the one he bought yesterday is b, and\nthe color of the one he bought today is c. Here, the color of each paint can\nis represented by an integer between 1 and 100, inclusive.\n\nSince he is forgetful, he might have bought more than one paint can in the\nsame color. Count the number of different kinds of colors of these paint cans\nand tell him.\"\"\"\n",
-  "entry_point": "count_colors",
-  "canonical_solution": "N = map(int, input().split())\nprint(len(set(N)))\n",
-  "test": "\n\nMETADATA = {\n    'author': 'codenet',\n    'dataset': 'test'\n}\n\n\ndef check(candidate):\n    assert candidate([3, 1, 4]) == 3\n"
-}
